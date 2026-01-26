@@ -47,7 +47,7 @@ public class LoginUI extends JFrame {
 
                 if (user != null) {
                     JOptionPane.showMessageDialog(null, "Welcome, " + user.getRole() + "!");
-                    // TODO: Open Main Menu here later
+                    new MainMenuUI().setVisible(true);
                     dispose(); // Close login window
                 } else {
                     JOptionPane.showMessageDialog(null, "Invalid Username or Password", "Error", JOptionPane.ERROR_MESSAGE);
