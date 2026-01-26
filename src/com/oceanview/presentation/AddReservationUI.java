@@ -5,89 +5,95 @@ import javax.swing.*;
 
 public class AddReservationUI extends JFrame {
 
+    // Declare fields at class level so we can clear them later
+    private JTextField txtName, txtAddr, txtPhone, txtIn, txtOut;
+    private JComboBox<String> cbRoom;
+
     public AddReservationUI() {
         setTitle("Add New Reservation");
         setSize(400, 500);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Only closes this window, not the whole app
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(null);
 
-        // 1. Guest Name
-        JLabel lblName = new JLabel("Guest Name:");
-        lblName.setBounds(30, 30, 100, 25);
-        add(lblName);
-        JTextField txtName = new JTextField();
-        txtName.setBounds(140, 30, 200, 25);
-        add(txtName);
+        // --- Labels & Fields ---
+        JLabel lblName = new JLabel("Guest Name:"); lblName.setBounds(30, 30, 100, 25); add(lblName);
+        txtName = new JTextField(); txtName.setBounds(140, 30, 200, 25); add(txtName);
 
-        // 2. Address
-        JLabel lblAddr = new JLabel("Address:");
-        lblAddr.setBounds(30, 70, 100, 25);
-        add(lblAddr);
-        JTextField txtAddr = new JTextField();
-        txtAddr.setBounds(140, 70, 200, 25);
-        add(txtAddr);
+        JLabel lblAddr = new JLabel("Address:"); lblAddr.setBounds(30, 70, 100, 25); add(lblAddr);
+        txtAddr = new JTextField(); txtAddr.setBounds(140, 70, 200, 25); add(txtAddr);
 
-        // 3. Contact
-        JLabel lblPhone = new JLabel("Contact No:");
-        lblPhone.setBounds(30, 110, 100, 25);
-        add(lblPhone);
-        JTextField txtPhone = new JTextField();
-        txtPhone.setBounds(140, 110, 200, 25);
-        add(txtPhone);
+        JLabel lblPhone = new JLabel("Contact No:"); lblPhone.setBounds(30, 110, 100, 25); add(lblPhone);
+        txtPhone = new JTextField(); txtPhone.setBounds(140, 110, 200, 25); add(txtPhone);
 
-        // 4. Room Type (Dropdown)
-        JLabel lblRoom = new JLabel("Room Type:");
-        lblRoom.setBounds(30, 150, 100, 25);
-        add(lblRoom);
-        // The numbers 1, 2, 3 correspond to IDs in your database
+        JLabel lblRoom = new JLabel("Room Type:"); lblRoom.setBounds(30, 150, 100, 25); add(lblRoom);
         String[] rooms = {"1 - Single (5000)", "2 - Double (8500)", "3 - Suite (15000)"};
-        JComboBox<String> cbRoom = new JComboBox<>(rooms);
-        cbRoom.setBounds(140, 150, 200, 25);
-        add(cbRoom);
+        cbRoom = new JComboBox<>(rooms); cbRoom.setBounds(140, 150, 200, 25); add(cbRoom);
 
-        // 5. Dates
-        JLabel lblIn = new JLabel("Check-In (YYYY-MM-DD):");
-        lblIn.setBounds(30, 190, 150, 25);
-        add(lblIn);
-        JTextField txtIn = new JTextField("2025-02-01");
-        txtIn.setBounds(180, 190, 160, 25);
-        add(txtIn);
+        JLabel lblIn = new JLabel("Check-In:"); lblIn.setBounds(30, 190, 100, 25); add(lblIn);
+        txtIn = new JTextField("2025-02-01"); txtIn.setBounds(140, 190, 200, 25); add(txtIn);
 
-        JLabel lblOut = new JLabel("Check-Out (YYYY-MM-DD):");
-        lblOut.setBounds(30, 230, 150, 25);
-        add(lblOut);
-        JTextField txtOut = new JTextField("2025-02-05");
-        txtOut.setBounds(180, 230, 160, 25);
-        add(txtOut);
+        JLabel lblOut = new JLabel("Check-Out:"); lblOut.setBounds(30, 230, 100, 25); add(lblOut);
+        txtOut = new JTextField("2025-02-05"); txtOut.setBounds(140, 230, 200, 25); add(txtOut);
 
-        // 6. Save Button
-        JButton btnSave = new JButton("Save Reservation");
-        btnSave.setBounds(100, 300, 180, 40);
+        // --- BUTTONS ---
+        JButton btnBack = new JButton("Back");
+        btnBack.setBounds(50, 300, 130, 40);
+        add(btnBack);
+
+        JButton btnSave = new JButton("Save");
+        btnSave.setBounds(200, 300, 130, 40);
+        btnSave.setBackground(new java.awt.Color(34, 139, 34)); // Green
+        btnSave.setForeground(java.awt.Color.WHITE);
         add(btnSave);
 
-        btnSave.addActionListener(e -> {
-            // Get data from form
-            String name = txtName.getText();
-            String address = txtAddr.getText();
-            String phone = txtPhone.getText();
-            String checkIn = txtIn.getText();
-            String checkOut = txtOut.getText();
+        // --- ACTIONS ---
+        btnBack.addActionListener(e -> dispose());
 
-            // Extract ID from dropdown (e.g., "1 - Single" becomes 1)
+        btnSave.addActionListener(e -> {
+            String name = txtName.getText().trim();
+            String address = txtAddr.getText().trim();
+            String phone = txtPhone.getText().trim();
+            String checkIn = txtIn.getText().trim();
+            String checkOut = txtOut.getText().trim();
+
+            // Validation
+            if (name.isEmpty() || address.isEmpty() || phone.isEmpty()) {
+                JOptionPane.showMessageDialog(AddReservationUI.this, "Error: All fields are required!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!phone.matches("\\d{10}")) {
+                JOptionPane.showMessageDialog(AddReservationUI.this, "Error: Phone must be 10 digits.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!checkIn.matches("\\d{4}-\\d{2}-\\d{2}") || !checkOut.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                JOptionPane.showMessageDialog(AddReservationUI.this, "Error: Date must be YYYY-MM-DD.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Save
             String selected = (String) cbRoom.getSelectedItem();
             int typeId = Integer.parseInt(selected.split(" - ")[0]);
 
-            // Call the Data Layer
-            ReservationDAO dao = new ReservationDAO();
-            boolean success = dao.addReservation(name, address, phone, typeId, checkIn, checkOut);
+            boolean success = new ReservationDAO().addReservation(name, address, phone, typeId, checkIn, checkOut);
 
             if (success) {
-                JOptionPane.showMessageDialog(null, "Reservation Saved Successfully!");
-                dispose(); // Close form
+                JOptionPane.showMessageDialog(AddReservationUI.this, "Reservation Saved Successfully!");
+                // FIXED: We do NOT close the window (dispose). We just clear the fields.
+                clearFields();
             } else {
-                JOptionPane.showMessageDialog(null, "Error saving data.");
+                JOptionPane.showMessageDialog(AddReservationUI.this, "Database Error: Could not save.");
             }
         });
+    }
+
+    // Helper to empty the boxes
+    private void clearFields() {
+        txtName.setText("");
+        txtAddr.setText("");
+        txtPhone.setText("");
+        // Keep dates or clear them? Let's reset to default to be helpful
+        txtIn.setText("2025-02-01");
+        txtOut.setText("2025-02-05");
     }
 }

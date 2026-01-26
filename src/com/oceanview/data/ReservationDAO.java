@@ -3,23 +3,25 @@ package com.oceanview.data;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 public class ReservationDAO {
 
-    // --- METHOD 1: ADD RESERVATION (You already have this) ---
+    // --- METHOD 1: ADD RESERVATION ---
     public boolean addReservation(String name, String address, String contact, int roomTypeId, String checkIn, String checkOut) {
         Connection conn = DBConnection.getConnection();
         try {
-            // Calculate Bill
+            // 1. Calculate Bill
             RoomDAO roomDao = new RoomDAO();
             double pricePerNight = roomDao.getPrice(roomTypeId);
 
-            java.time.LocalDate date1 = java.time.LocalDate.parse(checkIn);
-            java.time.LocalDate date2 = java.time.LocalDate.parse(checkOut);
-            long days = java.time.temporal.ChronoUnit.DAYS.between(date1, date2);
+            LocalDate date1 = LocalDate.parse(checkIn);
+            LocalDate date2 = LocalDate.parse(checkOut);
+            long days = ChronoUnit.DAYS.between(date1, date2);
             double totalCost = days * pricePerNight;
 
-            // Insert Guest
+            // 2. Insert Guest
             String insertGuest = "INSERT INTO guests (full_name, address, contact_number) VALUES (?, ?, ?)";
             PreparedStatement guestStmt = conn.prepareStatement(insertGuest, Statement.RETURN_GENERATED_KEYS);
             guestStmt.setString(1, name);
@@ -31,7 +33,7 @@ public class ReservationDAO {
             int guestId = 0;
             if (rs.next()) guestId = rs.getInt(1);
 
-            // Insert Reservation
+            // 3. Insert Reservation
             String insertRes = "INSERT INTO reservations (guest_id, room_type_id, check_in_date, check_out_date, total_cost, status) VALUES (?, ?, ?, ?, ?, 'Confirmed')";
             PreparedStatement resStmt = conn.prepareStatement(insertRes);
             resStmt.setInt(1, guestId);
@@ -48,12 +50,11 @@ public class ReservationDAO {
         }
     }
 
-    // --- METHOD 2: GET ALL RESERVATIONS (This is the new part!) ---
+    // --- METHOD 2: GET ALL RESERVATIONS ---
     public List<String[]> getAllReservations() {
         List<String[]> list = new ArrayList<>();
         Connection conn = DBConnection.getConnection();
         try {
-            // Join tables to get Guest Name instead of just Guest ID
             String query = "SELECT r.reservation_id, g.full_name, r.check_in_date, r.check_out_date, r.total_cost, r.status " +
                     "FROM reservations r " +
                     "JOIN guests g ON r.guest_id = g.guest_id";
@@ -71,11 +72,121 @@ public class ReservationDAO {
                 };
                 list.add(row);
             }
-        } catch (Exception e) {
-            System.out.println("CRITICAL ERROR: " + e.getMessage()); // Print error to console
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return list;
     }
 
+    // --- METHOD 3: DELETE RESERVATION ---
+    public boolean deleteReservation(int id) {
+        Connection conn = DBConnection.getConnection();
+        try {
+            String query = "DELETE FROM reservations WHERE reservation_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // --- METHOD 4: UPDATE DATES (Simple) ---
+    public boolean updateDates(int id, String newCheckIn, String newCheckOut) {
+        Connection conn = DBConnection.getConnection();
+        try {
+            String query = "UPDATE reservations SET check_in_date = ?, check_out_date = ? WHERE reservation_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, newCheckIn);
+            stmt.setString(2, newCheckOut);
+            stmt.setInt(3, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // --- METHOD 5: GET FULL DETAILS (For Editing) ---
+    public String[] getReservationDetails(int resId) {
+        Connection conn = DBConnection.getConnection();
+        try {
+            String query = "SELECT g.full_name, g.address, g.contact_number, r.room_type_id, r.check_in_date, r.check_out_date " +
+                    "FROM reservations r " +
+                    "JOIN guests g ON r.guest_id = g.guest_id " +
+                    "WHERE r.reservation_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, resId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return new String[] {
+                        rs.getString("full_name"),
+                        rs.getString("address"),
+                        rs.getString("contact_number"),
+                        String.valueOf(rs.getInt("room_type_id")),
+                        rs.getString("check_in_date"),
+                        rs.getString("check_out_date")
+                };
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // --- METHOD 6: UPDATE EVERYTHING (With Cost Recalculation) ---
+    public boolean updateFullReservation(int resId, String name, String addr, String phone, int typeId, String in, String out) {
+        Connection conn = DBConnection.getConnection();
+        try {
+            // 1. Get Guest ID
+            int guestId = 0;
+            PreparedStatement getG = conn.prepareStatement("SELECT guest_id FROM reservations WHERE reservation_id = ?");
+            getG.setInt(1, resId);
+            ResultSet rs = getG.executeQuery();
+            if (rs.next()) guestId = rs.getInt(1);
+
+            // 2. Update Guest Info
+            String upGuest = "UPDATE guests SET full_name=?, address=?, contact_number=? WHERE guest_id=?";
+            PreparedStatement s1 = conn.prepareStatement(upGuest);
+            s1.setString(1, name);
+            s1.setString(2, addr);
+            s1.setString(3, phone);
+            s1.setInt(4, guestId);
+            s1.executeUpdate();
+
+            // 3. RECALCULATE COST (The missing link!)
+            RoomDAO roomDao = new RoomDAO();
+            double price = roomDao.getPrice(typeId);
+
+            // Calculate days
+            LocalDate d1 = LocalDate.parse(in);
+            LocalDate d2 = LocalDate.parse(out);
+            long days = ChronoUnit.DAYS.between(d1, d2);
+
+            // Prevent negative or zero days
+            if (days < 1) days = 1;
+
+            double newCost = days * price;
+
+            System.out.println("DEBUG: Recalculating Cost...");
+            System.out.println("Days: " + days + " | Price: " + price + " | New Total: " + newCost);
+
+            // 4. Update Reservation with NEW COST
+            String upRes = "UPDATE reservations SET room_type_id=?, check_in_date=?, check_out_date=?, total_cost=? WHERE reservation_id=?";
+            PreparedStatement s2 = conn.prepareStatement(upRes);
+            s2.setInt(1, typeId);
+            s2.setString(2, in);
+            s2.setString(3, out);
+            s2.setDouble(4, newCost); // <--- Saving the new cost here
+            s2.setInt(5, resId);
+
+            return s2.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 } // End of Class
