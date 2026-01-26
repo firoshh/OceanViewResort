@@ -32,7 +32,7 @@ public class MainMenuUI extends JFrame {
 
         // Button Actions
         btnAdd.addActionListener(e -> new AddReservationUI().setVisible(true));
-
+        btnView.addActionListener(e -> new ViewReservationsUI().setVisible(true));
         btnExit.addActionListener(e -> System.exit(0));
     }
 }
