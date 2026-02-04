@@ -109,11 +109,12 @@ public class ReservationDAO {
         }
     }
 
-    // --- METHOD 5: GET FULL DETAILS (For Editing) ---
+    // --- METHOD 5: GET FULL DETAILS (Updated to return Status) ---
     public String[] getReservationDetails(int resId) {
         Connection conn = DBConnection.getConnection();
         try {
-            String query = "SELECT g.full_name, g.address, g.contact_number, r.room_type_id, r.check_in_date, r.check_out_date " +
+            // Added 'r.status' to the query
+            String query = "SELECT g.full_name, g.address, g.contact_number, r.room_type_id, r.check_in_date, r.check_out_date, r.status " +
                     "FROM reservations r " +
                     "JOIN guests g ON r.guest_id = g.guest_id " +
                     "WHERE r.reservation_id = ?";
@@ -128,7 +129,8 @@ public class ReservationDAO {
                         rs.getString("contact_number"),
                         String.valueOf(rs.getInt("room_type_id")),
                         rs.getString("check_in_date"),
-                        rs.getString("check_out_date")
+                        rs.getString("check_out_date"),
+                        rs.getString("status") // Index 6: Status
                 };
             }
         } catch (SQLException e) {
@@ -137,8 +139,8 @@ public class ReservationDAO {
         return null;
     }
 
-    // --- METHOD 6: UPDATE EVERYTHING (With Cost Recalculation) ---
-    public boolean updateFullReservation(int resId, String name, String addr, String phone, int typeId, String in, String out) {
+    // --- METHOD 6: UPDATE EVERYTHING (Updated with Status & Cost Recalc) ---
+    public boolean updateFullReservation(int resId, String name, String addr, String phone, int typeId, String in, String out, String status) {
         Connection conn = DBConnection.getConnection();
         try {
             // 1. Get Guest ID
@@ -161,22 +163,21 @@ public class ReservationDAO {
             RoomDAO roomDao = new RoomDAO();
             double price = roomDao.getPrice(typeId);
 
-            // Calculate days
             LocalDate d1 = LocalDate.parse(in);
             LocalDate d2 = LocalDate.parse(out);
             long days = ChronoUnit.DAYS.between(d1, d2);
             if (days < 1) days = 1;
-
             double newCost = days * price;
 
-            // 4. Update Reservation with NEW COST
-            String upRes = "UPDATE reservations SET room_type_id=?, check_in_date=?, check_out_date=?, total_cost=? WHERE reservation_id=?";
+            // 4. Update Reservation (With Status)
+            String upRes = "UPDATE reservations SET room_type_id=?, check_in_date=?, check_out_date=?, total_cost=?, status=? WHERE reservation_id=?";
             PreparedStatement s2 = conn.prepareStatement(upRes);
             s2.setInt(1, typeId);
             s2.setString(2, in);
             s2.setString(3, out);
             s2.setDouble(4, newCost);
-            s2.setInt(5, resId);
+            s2.setString(5, status); // <--- Saving the new status
+            s2.setInt(6, resId);
 
             return s2.executeUpdate() > 0;
 
@@ -203,9 +204,8 @@ public class ReservationDAO {
                 stats[1] = rs.getInt(2); // Total Revenue (Sum)
             }
 
-            // 2. Count "Upcoming" (Future Check-ins)
-            // Note: Uses CURDATE() which is standard MySQL
-            PreparedStatement stmt2 = conn.prepareStatement("SELECT COUNT(*) FROM reservations WHERE check_in_date >= CURDATE()");
+            // 2. Count "Pending" or Future Check-ins
+            PreparedStatement stmt2 = conn.prepareStatement("SELECT COUNT(*) FROM reservations WHERE status = 'Pending'");
             ResultSet rs2 = stmt2.executeQuery();
             if (rs2.next()) {
                 stats[2] = rs2.getInt(1);
@@ -225,10 +225,10 @@ public class ReservationDAO {
             String query = "SELECT r.reservation_id, g.full_name, r.check_in_date, r.check_out_date, r.total_cost, r.status " +
                     "FROM reservations r " +
                     "JOIN guests g ON r.guest_id = g.guest_id " +
-                    "WHERE g.full_name LIKE ?"; // <--- The Search Filter
+                    "WHERE g.full_name LIKE ?";
 
             PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, "%" + keyword + "%"); // Surrounds keyword with % for partial match
+            stmt.setString(1, "%" + keyword + "%");
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -246,6 +246,28 @@ public class ReservationDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    // --- METHOD 9: GET MONTHLY DATA (For Real Charts) ---
+    public int[] getMonthlyBookings() {
+        int[] months = new int[12]; // Index 0 = Jan, 11 = Dec
+        Connection conn = DBConnection.getConnection();
+        try {
+            // Extract the Month Number from check_in_date
+            String query = "SELECT MONTH(check_in_date) as m, COUNT(*) as c FROM reservations GROUP BY MONTH(check_in_date)";
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while(rs.next()) {
+                int monthIndex = rs.getInt("m") - 1; // SQL months are 1-12, Java arrays are 0-11
+                if(monthIndex >= 0 && monthIndex < 12) {
+                    months[monthIndex] = rs.getInt("c");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return months;
     }
 
 } // End of Class
