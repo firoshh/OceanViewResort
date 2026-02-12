@@ -4,7 +4,7 @@
 <%
     // 1. Security Check
     if (session.getAttribute("currentUser") == null) {
-        response.sendRedirect("index.jsp");
+        response.sendRedirect("login.jsp"); // Changed to login.jsp based on your renaming
         return;
     }
 
@@ -27,9 +27,13 @@
 <html>
 <head>
     <title>All Reservations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 2rem; background-color: #f8fafc; }
+        /* Keep specific page styles here if they override global ones */
+        body { font-family: 'Segoe UI', sans-serif; padding: 2rem; }
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
@@ -40,32 +44,42 @@
         .search-container { display: flex; gap: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .search-box { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 250px; }
         .btn-search { background: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
-        .btn-clear { background: #94a3b8; color: white; text-decoration: none; padding: 8px 15px; border-radius: 4px; font-size: 14px; }
 
+        /* Table Styles */
         table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-top: 20px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #1e293b; color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px; }
         tr:hover { background-color: #f1f5f9; }
 
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .confirmed { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        /* Status Badges */
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .status-Confirmed { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .status-Pending { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
+        .status-Cancelled { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
 
-        .actions a { text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; margin-right: 5px; font-weight: 600; transition: 0.2s; }
+        /* Action Buttons */
+        .actions a { text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; margin-right: 5px; font-weight: 600; transition: 0.2s; display: inline-block; }
+
         .btn-edit { background: #fbbf24; color: #78350f; }
         .btn-edit:hover { background: #d97706; color: white; }
+
+        /* NEW BILL BUTTON STYLE */
+        .btn-bill { background: #3b82f6; color: white; }
+        .btn-bill:hover { background: #1d4ed8; color: white; }
+
         .btn-del { background: #ef4444; color: white; }
         .btn-del:hover { background: #dc2626; }
-
-        .empty-state { text-align: center; padding: 40px; color: #64748b; font-size: 18px; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <h2>📂 Reservation List</h2>
+        <h2 class="text-white" style="text-shadow: 1px 1px 4px black;">📂 Reservation List</h2>
         <% if (searchQuery != null && !searchQuery.isEmpty()) { %>
-        <span style="color: #64748b;">Showing results for: <b>"<%= searchQuery %>"</b></span>
+        <span class="text-white" style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px;">
+                Showing results for: <b>"<%= searchQuery %>"</b>
+            </span>
         <% } %>
     </div>
 
@@ -74,14 +88,14 @@
             <input type="text" name="q" class="search-box" placeholder="Search Guest Name..." value="<%= (searchQuery != null) ? searchQuery : "" %>">
             <button type="submit" class="btn-search"><i class="fas fa-search"></i></button>
             <% if (searchQuery != null && !searchQuery.isEmpty()) { %>
-            <a href="viewReservations.jsp" class="btn-clear">Clear</a>
+            <a href="viewReservations.jsp" class="btn btn-secondary btn-sm" style="padding: 8px;">Clear</a>
             <% } %>
         </form>
         <a href="dashboard.jsp" class="btn-back">← Dashboard</a>
     </div>
 </div>
 
-<table>
+<div class="table-container"> <table>
     <thead>
     <tr>
         <th>ID</th>
@@ -93,13 +107,14 @@
         <th>Actions</th>
     </tr>
     </thead>
+
     <tbody>
     <%
         if (list.isEmpty()) {
     %>
     <tr>
-        <td colspan="7" class="empty-state">
-            <i class="fas fa-folder-open" style="font-size: 40px; margin-bottom: 10px; display:block;"></i>
+        <td colspan="7" class="text-center p-5 text-muted">
+            <i class="fas fa-folder-open mb-3" style="font-size: 40px;"></i><br>
             No reservations found.
         </td>
     </tr>
@@ -108,10 +123,28 @@
         for (String[] row : list) {
     %>
     <tr>
-        <td>#<%= row[0] %></td> <td style="font-weight: bold; color: #334155;"><%= row[1] %></td> <td><%= row[2] %></td> <td><%= row[3] %></td> <td style="font-family: monospace; font-size: 14px;">LKR <%= row[4] %></td> <td><span class="badge confirmed"><%= row[5] %></span></td> <td class="actions">
-        <a href="editReservation.jsp?id=<%= row[0] %>" class="btn-edit"><i class="fas fa-edit"></i> Edit</a>
-        <a href="DeleteServlet?id=<%= row[0] %>" class="btn-del" onclick="return confirm('Are you sure you want to delete <%= row[1] %>?');"><i class="fas fa-trash"></i> Delete</a>
-    </td>
+        <td>#<%= row[0] %></td>
+        <td style="font-weight: bold; color: #334155;"><%= row[1] %></td>
+        <td><%= row[2] %></td>
+        <td><%= row[3] %></td>
+        <td style="font-family: monospace; font-size: 14px;">LKR <%= row[4] %></td>
+
+        <td><span class="badge status-<%= row[5] %>"><%= row[5] %></span></td>
+
+        <td class="actions">
+            <a href="editReservation.jsp?id=<%= row[0] %>" class="btn-edit" title="Edit">
+                <i class="fas fa-edit"></i>
+            </a>
+
+            <a href="bill.jsp?id=<%= row[0] %>" class="btn-bill" title="Generate Invoice">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </a>
+
+            <a href="DeleteServlet?id=<%= row[0] %>" class="btn-del"
+               onclick="return confirm('Are you sure you want to delete <%= row[1] %>?');" title="Delete">
+                <i class="fas fa-trash"></i>
+            </a>
+        </td>
     </tr>
     <%
             }
@@ -119,6 +152,7 @@
     %>
     </tbody>
 </table>
+</div>
 
 </body>
 </html>

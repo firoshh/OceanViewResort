@@ -248,6 +248,48 @@ public class ReservationDAO {
         return list;
     }
 
+    // --- METHOD 10: GET BILLING INFO (For Invoice) ---
+    public String[] getBillingInfo(int resId) {
+        Connection conn = DBConnection.getConnection();
+        try {
+            // We join Guests AND Room Types to get the text names (e.g., "Deluxe Room")
+            String query = "SELECT g.full_name, g.address, g.contact_number, " +
+                    "r.check_in_date, r.check_out_date, r.total_cost, " +
+                    "rt.type_name, rt.price_per_night " +
+                    "FROM reservations r " +
+                    "JOIN guests g ON r.guest_id = g.guest_id " +
+                    "JOIN room_types rt ON r.room_type_id = rt.type_id " +
+                    "WHERE r.reservation_id = ?";
+
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, resId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                // Calculate Number of Nights manually for the invoice
+                java.time.LocalDate d1 = java.time.LocalDate.parse(rs.getString("check_in_date"));
+                java.time.LocalDate d2 = java.time.LocalDate.parse(rs.getString("check_out_date"));
+                long nights = java.time.temporal.ChronoUnit.DAYS.between(d1, d2);
+                if(nights < 1) nights = 1;
+
+                return new String[] {
+                        rs.getString("full_name"),       // 0: Name
+                        rs.getString("address"),         // 1: Address
+                        rs.getString("contact_number"),  // 2: Phone
+                        rs.getString("check_in_date"),   // 3: Check In
+                        rs.getString("check_out_date"),  // 4: Check Out
+                        rs.getString("type_name"),       // 5: Room Name
+                        String.valueOf(rs.getDouble("price_per_night")), // 6: Rate
+                        String.valueOf(nights),          // 7: Nights
+                        String.valueOf(rs.getDouble("total_cost"))       // 8: Total
+                };
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     // --- METHOD 9: GET MONTHLY DATA (For Real Charts) ---
     public int[] getMonthlyBookings() {
         int[] months = new int[12]; // Index 0 = Jan, 11 = Dec
