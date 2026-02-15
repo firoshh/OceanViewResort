@@ -1,18 +1,13 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.oceanview.data.ReservationDAO" %>
 <%
-    // 1. Security Check
     if (session.getAttribute("currentUser") == null) {
-        response.sendRedirect("index.jsp");
+        response.sendRedirect("index.jsp"); // OR login.jsp if you renamed it
         return;
     }
 
-    // 2. FETCH REAL DATA FROM DATABASE
     ReservationDAO dao = new ReservationDAO();
     int[] stats = dao.getDashboardStats();
-    // stats[0] = Total Bookings
-    // stats[1] = Total Revenue
-    // stats[2] = Pending Count
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -31,17 +26,18 @@
         .bg-gradient-primary { background: linear-gradient(45deg, #4e73df, #224abe); color: white; }
         .bg-gradient-success { background: linear-gradient(45deg, #1cc88a, #13855c); color: white; }
         .bg-gradient-warning { background: linear-gradient(45deg, #f6c23e, #dda20a); color: white; }
+        .btn-admin { width: 100%; margin-bottom: 10px; padding: 15px; font-weight: bold; text-align: left; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
     <h3 class="text-center mb-4"><i class="fas fa-water"></i> OceanView</h3>
-    <a href="dashboard.jsp"><i class="fas fa-home me-2"></i> Dashboard</a>
+    <a href="admin_dashboard.jsp"><i class="fas fa-home me-2"></i> Dashboard</a>
     <a href="viewReservations.jsp"><i class="fas fa-list me-2"></i> Reservations</a>
-    <a href="addReservation.jsp"><i class="fas fa-plus-circle me-2"></i> Add New</a>
-    <a href="reports.jsp"><i class="fas fa-chart-line me-2"></i> Reports</a>
-    <a href="help.jsp"><i class="fas fa-question-circle me-2"></i> Help</a>
+    <a href="reports.jsp"><i class="fas fa-chart-line me-2"></i> Monthly Report</a>
+    <a href="manageStaff.jsp"><i class="fas fa-users-cog me-2"></i> Manage Staff</a>
+    <a href="manageRooms.jsp"><i class="fas fa-bed me-2"></i> Manage Rooms</a>
     <a href="index.jsp" class="text-danger mt-5"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
 </div>
 
@@ -55,14 +51,12 @@
                 <p class="fs-4"><%= stats[0] %></p>
             </div>
         </div>
-
         <div class="col-md-4">
             <div class="card bg-gradient-success p-3">
                 <h3>Revenue</h3>
                 <p class="fs-4">LKR <%= stats[1] %></p>
             </div>
         </div>
-
         <div class="col-md-4">
             <div class="card bg-gradient-warning p-3">
                 <h3>Pending</h3>
@@ -71,17 +65,35 @@
         </div>
     </div>
 
-    <div class="card p-4">
-        <h4>Quick Actions</h4>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card p-4 h-100">
+                <h4><i class="fas fa-calendar-check"></i> Reservations</h4>
+                <form action="viewReservations.jsp" method="get" class="d-flex mt-3 mb-3">
+                    <input type="text" name="q" class="form-control me-2" placeholder="Search Guest Name...">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                </form>
+                <div>
+                    <a href="addReservation.jsp" class="btn btn-primary me-2"><i class="fas fa-plus"></i> New Reservation</a>
+                    <a href="viewReservations.jsp" class="btn btn-secondary"><i class="fas fa-list"></i> View All</a>
+                </div>
+            </div>
+        </div>
 
-        <form action="viewReservations.jsp" method="get" class="d-flex mt-3 mb-3">
-            <input type="text" name="q" class="form-control me-2" placeholder="Search by Guest Name..." style="max-width: 300px;">
-            <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search"></i> Search</button>
-        </form>
-
-        <div class="mt-2">
-            <a href="addReservation.jsp" class="btn btn-primary btn-lg me-3"><i class="fas fa-plus"></i> New Reservation</a>
-            <a href="viewReservations.jsp" class="btn btn-outline-dark btn-lg"><i class="fas fa-list"></i> View All</a>
+        <div class="col-md-4">
+            <div class="card p-4 h-100 bg-white">
+                <h4 class="text-secondary"><i class="fas fa-cogs"></i> Management</h4>
+                <hr>
+                <a href="reports.jsp" class="btn btn-outline-success btn-admin">
+                    <i class="fas fa-chart-pie me-2"></i> Monthly Summary
+                </a>
+                <a href="manageStaff.jsp" class="btn btn-outline-info btn-admin">
+                    <i class="fas fa-user-plus me-2"></i> Add/Remove Staff
+                </a>
+                <a href="manageRooms.jsp" class="btn btn-outline-warning btn-admin">
+                    <i class="fas fa-tag me-2"></i> Edit Room Prices
+                </a>
+            </div>
         </div>
     </div>
 </div>

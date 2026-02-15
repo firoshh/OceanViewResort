@@ -1,4 +1,24 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="com.oceanview.data.RoomDAO" %>
+<%@ page import="java.util.List" %>
+<%
+  // 1. Security Check
+  // Note: I updated this redirect to index.jsp based on your new login flow
+  if (session.getAttribute("currentUser") == null) {
+    response.sendRedirect("index.jsp");
+    return;
+  }
+
+  // 2. Dynamic Dashboard Link
+  String myDashboard = "staff_dashboard.jsp"; // Default for staff
+  if ("Admin".equalsIgnoreCase((String) session.getAttribute("role"))) {
+    myDashboard = "admin_dashboard.jsp"; // Override for Admin
+  }
+
+  // 3. Fetch LIVE Room Types from Database
+  RoomDAO roomDao = new RoomDAO();
+  List<String[]> rooms = roomDao.getAllRoomTypes();
+%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -23,14 +43,24 @@
         <label>Contact Number</label>
         <input type="text" name="phone" class="form-control" required pattern="\d{10}" title="10 Digits only">
       </div>
+
       <div class="mb-3">
         <label>Room Type</label>
-        <select name="roomType" class="form-select">
-          <option value="1">Single Room (LKR 5000)</option>
-          <option value="2">Double Room (LKR 8500)</option>
-          <option value="3">Suite (LKR 15000)</option>
+        <select name="roomType" class="form-select" required>
+          <option value="" disabled selected>-- Select a Room --</option>
+          <%
+            // Loop through the rooms pulled from the database
+            if(rooms != null) {
+              for(String[] r : rooms) {
+          %>
+          <option value="<%= r[0] %>"><%= r[1] %> (LKR <%= r[2] %>)</option>
+          <%
+              }
+            }
+          %>
         </select>
       </div>
+
       <div class="row">
         <div class="col-md-6 mb-3">
           <label>Check-In</label>
@@ -44,7 +74,7 @@
 
       <div class="d-grid gap-2">
         <button type="submit" class="btn btn-success">Save Reservation</button>
-        <a href="dashboard.jsp" class="btn btn-secondary">Cancel</a>
+        <a href="<%= myDashboard %>" class="btn btn-secondary">Cancel</a>
       </div>
     </form>
   </div>

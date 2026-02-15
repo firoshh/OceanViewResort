@@ -216,6 +216,24 @@ public class ReservationDAO {
         return stats;
     }
 
+    // Get Total Revenue for a specific Month and Year
+    public double getMonthlyRevenue(int month, int year) {
+        Connection conn = DBConnection.getConnection();
+        double total = 0;
+        try {
+            // SQL to sum cost where month and year match
+            String query = "SELECT SUM(total_cost) FROM reservations WHERE MONTH(check_in_date) = ? AND YEAR(check_in_date) = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, month);
+            stmt.setInt(2, year);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                total = rs.getDouble(1);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
+
     // --- METHOD 8: SEARCH RESERVATIONS (By Guest Name) ---
     public List<String[]> searchReservations(String keyword) {
         List<String[]> list = new ArrayList<>();

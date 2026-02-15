@@ -4,9 +4,16 @@
 <%
     // 1. Security Check
     if (session.getAttribute("currentUser") == null) {
-        response.sendRedirect("login.jsp"); // Changed to login.jsp based on your renaming
+        response.sendRedirect("login.jsp");
         return;
     }
+
+    // --- NEW: DYNAMIC DASHBOARD LINK ---
+    String myDashboard = "staff_dashboard.jsp"; // Default to staff
+    if ("Admin".equalsIgnoreCase((String) session.getAttribute("role"))) {
+        myDashboard = "admin_dashboard.jsp"; // Change to admin if they are an admin
+    }
+    // -----------------------------------
 
     // 2. FETCH DATA (Smart Logic)
     ReservationDAO dao = new ReservationDAO();
@@ -32,7 +39,6 @@
     <link rel="stylesheet" href="css/style.css">
 
     <style>
-        /* Keep specific page styles here if they override global ones */
         body { font-family: 'Segoe UI', sans-serif; padding: 2rem; }
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -40,30 +46,25 @@
         .btn-back { background: #64748b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
         .btn-back:hover { background: #475569; }
 
-        /* Search Bar Style */
         .search-container { display: flex; gap: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .search-box { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 250px; }
         .btn-search { background: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
 
-        /* Table Styles */
         table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-top: 20px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #1e293b; color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px; }
         tr:hover { background-color: #f1f5f9; }
 
-        /* Status Badges */
         .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
         .status-Confirmed { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
         .status-Pending { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
         .status-Cancelled { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
 
-        /* Action Buttons */
         .actions a { text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; margin-right: 5px; font-weight: 600; transition: 0.2s; display: inline-block; }
 
         .btn-edit { background: #fbbf24; color: #78350f; }
         .btn-edit:hover { background: #d97706; color: white; }
 
-        /* NEW BILL BUTTON STYLE */
         .btn-bill { background: #3b82f6; color: white; }
         .btn-bill:hover { background: #1d4ed8; color: white; }
 
@@ -91,7 +92,7 @@
             <a href="viewReservations.jsp" class="btn btn-secondary btn-sm" style="padding: 8px;">Clear</a>
             <% } %>
         </form>
-        <a href="dashboard.jsp" class="btn-back">← Dashboard</a>
+        <a href="<%= myDashboard %>" class="btn-back">← Dashboard</a>
     </div>
 </div>
 

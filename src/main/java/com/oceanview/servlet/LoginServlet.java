@@ -9,30 +9,48 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-// This annotation tells Tomcat: "When the form sends data here, run this code."
 @WebServlet("/LoginServlet")
 public class LoginServlet extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String u = request.getParameter("username");
+        String p = request.getParameter("password");
 
-        // 1. Get the text typed in the boxes
-        String user = request.getParameter("username");
-        String pass = request.getParameter("password");
+        // 1. WHAT PAGE DID THEY COME FROM? (Staff or Admin)
+        String loginType = request.getParameter("loginType");
 
-        // 2. Validate using the Database (Just like the Desktop App)
+        // Determine where to send them if there is an error
+        String errorPage = "Admin".equalsIgnoreCase(loginType) ? "admin_login.jsp" : "index.jsp";
+
         UserDAO dao = new UserDAO();
+        String dbRole = dao.authenticate(u, p); // Get REAL role from DB
 
-        if (dao.validateUser(user, pass)) {
-            // SUCCESS: Save user in session so they stay logged in
+        if (dbRole != null) {
+
+            // --- 2. STRICT SECURITY CHECK ---
+            // If they are an Admin but tried to use the Staff page (or vice versa), BLOCK THEM.
+            if (!dbRole.equalsIgnoreCase(loginType)) {
+                request.setAttribute("errorMessage", "Access Denied: Please use the correct login portal.");
+                request.getRequestDispatcher(errorPage).forward(request, response);
+                return; // Stop execution!
+            }
+
+            // --- 3. SUCCESS ---
             HttpSession session = request.getSession();
-            session.setAttribute("currentUser", user);
+            session.setAttribute("currentUser", u);
+            session.setAttribute("role", dbRole);
 
-            // Go to Dashboard
-            response.sendRedirect("dashboard.jsp");
+            // Redirect based on Role
+            if ("Admin".equalsIgnoreCase(dbRole)) {
+                response.sendRedirect("admin_dashboard.jsp");
+            } else {
+                response.sendRedirect("staff_dashboard.jsp");
+            }
+
         } else {
-            // FAILURE: Send them back to Login with an error message
-            request.setAttribute("errorMessage", "Invalid Username or Password!");
-            request.getRequestDispatcher("index.jsp").forward(request, response);
+            // --- 4. FAILURE (Wrong password or user) ---
+            request.setAttribute("errorMessage", "Invalid Username or Password");
+            request.getRequestDispatcher(errorPage).forward(request, response);
         }
     }
 }

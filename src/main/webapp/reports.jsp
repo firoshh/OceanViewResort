@@ -30,7 +30,7 @@
     </div>
 
     <div class="text-center">
-        <a href="dashboard.jsp" class="btn btn-primary">Back to Dashboard</a>
+        <a href="admin_dashboard.jsp" class="btn btn-primary">Back to Dashboard</a>
     </div>
 </div>
 

@@ -20,7 +20,7 @@
     </div>
   </div>
   <br>
-  <a href="dashboard.jsp" class="btn btn-primary">Back</a>
+  <a href="admin_dashboard.jsp" class="btn btn-primary">Back</a>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
