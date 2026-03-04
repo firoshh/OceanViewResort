@@ -1,6 +1,8 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.oceanview.data.RoomDAO" %>
 <%@ page import="java.util.List" %>
+<%@ page import="java.text.SimpleDateFormat" %>
+<%@ page import="java.util.Date" %>
 <%
   // 1. Security Check
   if (session.getAttribute("currentUser") == null) {
@@ -17,6 +19,9 @@
   // 3. Fetch LIVE Room Types from Database
   RoomDAO roomDao = new RoomDAO();
   List<String[]> rooms = roomDao.getAllRoomTypes();
+
+  // 4. Get Today's Date for Frontend Validation (TC10 Fix)
+  String todayDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 %>
 <!DOCTYPE html>
 <html>
@@ -155,11 +160,11 @@
       <div class="row">
         <div class="col-md-6 mb-4">
           <label class="form-label"><i class="fas fa-calendar-alt me-2"></i>Check-In</label>
-          <input type="date" name="checkIn" class="form-control" required>
+          <input type="date" name="checkIn" class="form-control" min="<%= todayDate %>" required>
         </div>
         <div class="col-md-6 mb-4">
           <label class="form-label"><i class="fas fa-calendar-check me-2"></i>Check-Out</label>
-          <input type="date" name="checkOut" class="form-control" required>
+          <input type="date" name="checkOut" class="form-control" min="<%= todayDate %>" required>
         </div>
       </div>
 
