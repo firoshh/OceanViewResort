@@ -13,3 +13,9 @@ This is a Java Web Application (JSP/Servlet) built for the Ocean View Resort man
 1. Import the `ocean_view_resort.sql` into MySQL.
 2. Update `DBConnection.java` with your database credentials.
 3. Run on Apache Tomcat 10.
+
+
+### Test Credentials
+To test the system immediately, use the following default accounts:
+- **Admin:** `admin` / `1234` *(replace with your actual test password)*
+- **Staff:** `staff` / `1234` *(replace with your actual test password)*
